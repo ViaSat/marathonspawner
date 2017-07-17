@@ -246,6 +246,7 @@ class MarathonSpawner(Spawner):
             mem=mem_request,
             container=app_container,
             constraints=self.get_constraints(),
+            ports=self.ports,
             health_checks=self.get_health_checks(),
             instances=1
             )
