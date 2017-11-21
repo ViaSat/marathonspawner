@@ -91,6 +91,24 @@ class MarathonSpawner(Spawner):
     def _get_default_format_volume_name(self):
         return default_format_volume_name
 
+    def _options_form_default(self):
+        return """
+        <label for="args">Select a configuration:</label>
+        <select class="form-control" name="args" required autofocus>
+          <option value="4G 2">2 CPU's 4GB</option>
+          <option value="8G 2">2 CPU's 8GB</option>
+        </select>
+        """
+
+    def options_from_form(self, formdata):
+        spawner_args = formdata.get('args')[0].split()
+        if 'G' in spawner_args[0]:
+            self.mem_limit = spawner_args[0]
+            self.cpu_limit = float(spawner_args[1])
+        else:
+            self.mem_limit = spawner_args[1]
+            self.cpu_limit = float(spawner_args[0])
+
     _executor = None
     @property
     def executor(self):
@@ -203,22 +221,6 @@ class MarathonSpawner(Spawner):
 
     def get_env(self):
         env = super(MarathonSpawner, self).get_env()
-        env.update(dict(
-            # Jupyter Hub config
-            JPY_USER=self.user.name,
-            JPY_COOKIE_NAME=self.user.server.cookie_name,
-            JPY_BASE_URL=self.user.server.base_url,
-            JPY_HUB_PREFIX=self.hub.server.base_url,
-        ))
-
-        if self.notebook_dir:
-            env['NOTEBOOK_DIR'] = self.notebook_dir
-
-        if self.hub_ip_connect or self.hub_port_connect > 0:
-            hub_api_url = self._public_hub_api_url()
-        else:
-            hub_api_url = self.hub.api_url
-        env['JPY_HUB_API_URL'] = hub_api_url
         return env
 
     @gen.coroutine
@@ -251,6 +253,12 @@ class MarathonSpawner(Spawner):
             instances=1
             )
 
+
+        app_info = yield self.get_app_info(self.container_name)
+        if app_info:
+            self.log.error("App with name: %s found. Will create new marathon app after deleting current.", self.container_name)
+            yield self.stop(True)
+
         app = self.marathon.create_app(self.container_name, app_request)
         if app is False or app.deployments is None:
             self.log.error("Failed to create application for %s", self.container_name)
@@ -267,7 +275,7 @@ class MarathonSpawner(Spawner):
     @gen.coroutine
     def stop(self, now=False):
         try:
-            status = self.marathon.delete_app(self.container_name)
+            status = self.marathon.delete_app(self.container_name, force=True)
         except:
             self.log.error("Could not delete application %s", self.container_name)
             raise
