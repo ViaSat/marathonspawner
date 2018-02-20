@@ -87,11 +87,30 @@ class MarathonSpawner(Spawner):
         """
     ).tag(config=True)
 
+    super_groups = List(
+        [],
+        help="Jupyter user groups that define superusers"
+    ).tag(config=True)
+
     @default('format_volume_name')
     def _get_default_format_volume_name(self):
         return default_format_volume_name
 
     def _options_form_default(self):
+        groups = [g.name for g in self.user.groups]
+        for sg in self.super_groups:
+            self.log.info(sg)
+            if sg in groups:
+                return """
+                <label for="args">Select a configuration:</label>
+                <select class="form-control" name="args" required autofocus>
+                  <option value="4G 2">2 CPU's 4GB</option>
+                  <option value="8G 2">2 CPU's 8GB</option>
+                  <option value="16G 2">2 CPU's 16GB</option>
+                  <option value="32G 2">2 CPU's 32GB</option>
+                </select>
+                """
+
         return """
         <label for="args">Select a configuration:</label>
         <select class="form-control" name="args" required autofocus>
@@ -110,6 +129,7 @@ class MarathonSpawner(Spawner):
             self.cpu_limit = float(spawner_args[0])
 
     _executor = None
+
     @property
     def executor(self):
         cls = self.__class__
