@@ -108,6 +108,7 @@ class MarathonSpawner(Spawner):
                   <option value="8G 2">2 CPU's 8GB</option>
                   <option value="16G 2">2 CPU's 16GB</option>
                   <option value="32G 2">2 CPU's 32GB</option>
+                  <option value="64G 2">2 CPU's 64GB</option>
                 </select>
                 """
 
